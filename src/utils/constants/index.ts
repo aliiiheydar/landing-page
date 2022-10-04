@@ -15,28 +15,6 @@ export const statusCodes = {
 }
 
 export const errorMessages = {
-  categoryService: {
-    noSuchCategory: 'دسته بندی مورد نظر پیدا نشد'
-  },
-  subcategoryService: {
-    notAllPropertiesExist: 'یک یا چند تا از ویژگی های انتخاب شده وجود ندارند',
-    noSuchSubcategory: 'زیرشاخه مورد نظر پیدا نشد'
-  },
-  factoryService: {
-    noSuchFactory: 'کارخانه مورد نظر پیدا نشد'
-  },
-  productService: {
-    invalidProperty: 'یک یا چند ویژگی یا مقادیر آنها در دسته بندی وجود ندارد'
-  },
-  orderService: {
-    invalidProduct: 'یک یا چند محصول از محصولات سفارش وجود ندارد',
-    noSuchBill: 'فاکتور مورد نظر وجود ندارد',
-    invalidUpdates: 'تغییرات مورد نظر قابل اعمال نیستند',
-    invalidStatusUpdate: 'امکان انجام این تغییر وضعیت وجود ندارد',
-    notAllProductsExist: 'یک یا چند تا از محصولات انتخاب شده وجود ندارند',
-    productsMismatch: 'همه محصولات سفارش با محصولات انتخاب شده مطابقت ندارند',
-    invalidShippingDate: 'تاریخ ارسال مورد نظر نامعتبر است'
-  },
   adminService: {
     godAdminRoleRequired: "شما ادمین اصلی نیستید",
     emailAlreadyTaken: "با ایمیل مورد نظر حساب ادمین وجود دارد",
@@ -65,10 +43,6 @@ export const errorMessages = {
     stepExists: 'این مرحله وجود دارد',
     imageMismatch: 'تصویر فرستاده شده نا مناسب است'
   },
-  billService: {
-    orderNotFound: 'سفارش مورد نظر یافت نشد',
-    billNotFound: 'فاکتور مورد نظر یافت نشد'
-  },
   shared: {
     ise: "سرور با مشکل مواجه شده",
     permissionsRequired: "شما دسترسی لازم برای این کار را ندارید",
@@ -80,24 +54,6 @@ export const errorMessages = {
   }
 }
 
-export const websiteName = 'hadad'
-
-export const permissions = ["createAdmin"]
+export const websiteName = 'landing-page'
 
 export const allowedImageFormats = ['svg', 'png', 'jpg', 'jpeg']
-
-export const orderStatuses = {
-  1: 'در انتظار تایید ادمین',
-  2: 'در انتظار انتخاب شیوه پرداخت',
-  3: 'آماده پرداخت آنلاین',
-  4: 'در انتظار اتمام پرداخت آنلاین',
-  5: 'در انتظار آپلود رسید پرداخت',
-  6: 'در انتظار تایید پرداخت',
-  7: 'در انتظار اصلاح رسید پرداخت',
-  8: 'در انتظار انتخاب زمانبندی ارسال',
-  9: 'آماده سازی برای ارسال',
-  10: 'در حال ارسال',
-  11: 'آماده برای تحویل',
-  12: 'تحویل شده', 
-  13: 'منقضی شده'
-}

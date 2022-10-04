@@ -21,7 +21,7 @@ export interface ISiteInfo extends Document {
     germanTitle: string
     germanSubheader: string
     germanContent: string
-  }
+  }[]
   properties: {
     _id: objectId
     icon: string
@@ -118,7 +118,7 @@ const siteInfoSchema = new Schema<ISiteInfo>({
       default: () => Math.floor(Date.now() / 1000)
     }
   }],
-  sliderHeader: {
+  sliderHeader: [{
     icon: { // This is going to be url of a stored image
       type: String
     },
@@ -140,7 +140,7 @@ const siteInfoSchema = new Schema<ISiteInfo>({
     germanContent: {
       type: String
     }
-  },
+  }],
   properties: [{
     icon: { // This is going to be url of a stored image
       type: String
