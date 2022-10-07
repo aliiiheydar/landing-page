@@ -5,7 +5,6 @@ import { statusCodes, errorMessages, websiteName } from "../../../utils/constant
 import { encrypt, decrypt } from "../../../utils/helpers/encryption"
 import { generateToken } from "../../../utils/helpers/token"
 import mongoose, { ObjectId as objectId } from "mongoose"
-import Report from "../report/report"
 const ObjectId = mongoose.Types.ObjectId
 
 const addAdmin = async (
@@ -72,13 +71,6 @@ const addAdmin = async (
       phone,
       name,
       permissions
-    })
-
-    await Report.create({
-      admin: adminId,
-      ip,
-      event: 'createAdmin',
-      createdAdmin
     })
 
     return {
@@ -176,11 +168,6 @@ const login = async (
     const token = generateToken(admin._id, "admin")
 
     await Admin.findByIdAndUpdate(admin._id, { $push: { tokens: token }}).exec()
-    await Report.create({
-      admin: admin._id,
-      ip,
-      event: 'login'
-    })
 
     return {
       success: true,
@@ -216,11 +203,6 @@ const logout = async (
     // popping old token from tokens list
     const { adminId, ip } = reportDetails
     await Admin.findOneAndUpdate({ tokens: token }, { $pull: { tokens: token }}).exec()
-    await Report.create({
-      admin: adminId,
-      ip,
-      event: 'logout'
-    })
 
     return {
       success: true
@@ -555,14 +537,6 @@ const deleteAdmins = async (
     // deleting admins
     for(const admin of admins) {
       const deletedAdmin = await Admin.findByIdAndDelete(admin._id).exec()
-      if(deletedAdmin) {
-        await Report.create({
-          admin: adminId,
-          ip,
-          event: 'deleteAdmin',
-          deletedAdmin: deletedAdmin.name
-        })
-      }
     }
 
     return {

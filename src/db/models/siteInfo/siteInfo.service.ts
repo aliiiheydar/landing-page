@@ -5,97 +5,17 @@ import { statusCodes, errorMessages, websiteName } from "../../../utils/constant
 import mongoose, { ObjectId as objectId } from "mongoose"
 const ObjectId = mongoose.Types.ObjectId
 
-const updateLogo = async (
-  logo: { 
-    format: string,
-    data: Buffer
-  }
-): Promise<IResponse> => {
-  try {
 
-    const result = await imageService.storeImage(logo.format, logo.data)
-
-    if(!result.success) {
-      return {
-        success: false,
-        error: {
-          message: errorMessages.shared.ise,
-          statusCode: statusCodes.ise
-        }
-      }
-    }
-
-    const update = { 
-      $set: { 
-        'logo': result.imageUrl 
-      }
-    }
-
-    const updatedSiteInfo = await SiteInfo.findOneAndUpdate({ websiteName }, update, { new: true })
-
-    return {
-      success: true,
-      outputs: {
-        logo: updatedSiteInfo?.logo
-      }
-    }
-
-  } catch(error) {
-    console.log('Error while updating site logo: ', error)
-
-    return {
-      success: false,
-      error: {
-        message: errorMessages.shared.ise,
-        statusCode: statusCodes.ise
-      }
-    }
-  }
-}
 
 //--------------------------------------------------------------------------------
 
-const getLogo = async (): Promise<IResponse> => {
-  try {
-    const siteInfo = await SiteInfo.findOne({ websiteName }).exec()
-
-    if(!siteInfo?.logo) {
-      return {
-        success: false,
-        error: {
-          message: errorMessages.shared.notFound,
-          statusCode: statusCodes.notFound
-        }
-      }
-    }
-
-    return {
-      success: true,
-      outputs: {
-        logo: siteInfo?.logo
-      }
-    }
-
-  } catch(error) {
-    console.log('Error while getting site logo: ', error)
-
-    return {
-      success: false,
-      error: {
-        message: errorMessages.shared.ise,
-        statusCode: statusCodes.ise
-      }
-    }
-  }
-}
-
-//--------------------------------------------------------------------------------
-
-const addSocialNetwork = async (
-  newSocialNetwork: {
-    title: string,
-    description: string,
-    image: {
+const addAdvantage = async (
+  newAdvantage: {
+    englishTitle: string
+    englishContent: string
+    germanTitle: string
+    germanContent: string
+    icon: {
       format: string,
       data: Buffer
     }
@@ -103,29 +23,42 @@ const addSocialNetwork = async (
 ): Promise<IResponse> => {
 
   try {
-    const { title, description, image } = newSocialNetwork
+    const { englishTitle, englishContent, germanTitle, germanContent, icon } = newAdvantage
 
-    // checking title availability
-    const filter = {
+    // checking english title availability
+    const existingEnglishTitle = await SiteInfo.findOne({
       websiteName,
-      'aboutUs.SocialNetworks.title': title
-    }
+      'advantages.englishTitle': englishTitle,
+    }).exec()
 
-    const existingSocialNetwork = await SiteInfo.findOne(filter).exec()
-
-    if(existingSocialNetwork) {
+    if(existingEnglishTitle) {
       return {
         success: false,
         error: {
-          message: errorMessages.siteInfo.titleIsTaken,
+          message: errorMessages.siteInfo.englishTitleIsTaken,
           statusCode: statusCodes.badRequest
         }
       }
     }
 
-    const result = await imageService.storeImage(image.format, image.data)
+    // checking german title availability
+    const existingGermanTitle = await SiteInfo.findOne({
+      websiteName,
+      'advantages.germanTitle': germanTitle,
+    }).exec()
 
-    if(!result.success) {
+    if(existingGermanTitle) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.siteInfo.germanTitleIsTaken,
+          statusCode: statusCodes.badRequest
+        }
+      }
+    }
+
+    const iconResult = await imageService.storeImage(icon.format, icon.data)
+    if(!iconResult.success) {
       return {
         success: false,
         error: {
@@ -137,29 +70,31 @@ const addSocialNetwork = async (
 
     const update = { 
       $push: { 
-        'aboutUs.SocialNetworks': {
-          title,
-          description,
-          image: result.imageUrl
+        advantages: {
+          englishTitle,
+          englishContent,
+          germanTitle,
+          germanContent,
+          icon: iconResult.imageUrl
         }
       }
     }
 
     const updatedSiteInfo = await SiteInfo.findOneAndUpdate({ websiteName }, update, { new: true })
 
-    const addedSocialNetwork = updatedSiteInfo?.aboutUs.SocialNetworks.find((SocialNetwork) => {
-      return SocialNetwork.title == title
+    const addedAdvantage = updatedSiteInfo?.advantages.find((advantage) => {
+      return advantage.englishTitle == englishTitle
     })
 
     return {
       success: true,
       outputs: {
-        SocialNetwork: addedSocialNetwork
+        advantage: addedAdvantage
       }
     }
 
   } catch(error) {
-    console.log('Error while adding SocialNetwork: ', error)
+    console.log('Error while adding advantage: ', error)
 
     return {
       success: false,
@@ -173,11 +108,11 @@ const addSocialNetwork = async (
 
 //--------------------------------------------------------------------------------
 
-const getSocialNetwork = async (SocialNetworkId: string): Promise<IResponse> => {
+const getAdvantage = async (advantageId: string): Promise<IResponse> => {
   try {
     const filter = {
       websiteName,
-      'aboutUs.SocialNetworks._id': new ObjectId(SocialNetworkId)
+      'advantages._id': new ObjectId(advantageId)
     }
     const siteInfo = await SiteInfo.findOne(filter).exec()
 
@@ -191,19 +126,19 @@ const getSocialNetwork = async (SocialNetworkId: string): Promise<IResponse> => 
       }
     }
 
-    const SocialNetwork = siteInfo.aboutUs.SocialNetworks.find((SocialNetwork) => {
-      return SocialNetwork._id.toString() == SocialNetworkId
+    const advantage = siteInfo.advantages.find((advantage) => {
+      return advantage._id.toString() == advantageId
     })
 
     return {
       success: true,
       outputs: {
-        SocialNetwork
+        advantage
       }
     }
 
   } catch(error) {
-    console.log('Error while getting SocialNetwork: ', error)
+    console.log('Error while getting advantage: ', error)
 
     return {
       success: false,
@@ -217,68 +152,20 @@ const getSocialNetwork = async (SocialNetworkId: string): Promise<IResponse> => 
 
 //--------------------------------------------------------------------------------
 
-const getSocialNetworks = async (
-  options: {
-    limit?: number,
-    skip?: number,
-    sortBy?: string,
-    sortOrder?: string,
-    search?: string
-  }
-): Promise<IResponse> => {
-
+const getAdvantages = async (): Promise<IResponse> => {
   try {
-    const { limit, skip, sortBy, sortOrder, search } = options
-
     const siteInfo = await SiteInfo.findOne({ websiteName }).exec()
 
-    let SocialNetworks = siteInfo?.aboutUs.SocialNetworks || []
-
-    // Sort SocialNetworks
-    if(sortBy) {
-      // This is for ts type error
-      // Because of yup validation sortBy always has a valid value
-      if(sortBy == 'title' || sortBy == 'createdAt') {
-        SocialNetworks.sort((a, b) => {
-          if(a[sortBy] > b[sortBy]) {
-            return sortOrder == 'desc' ? -1 : 1
-  
-          } else if(a[sortBy] < b[sortBy]) {
-            return sortOrder == 'desc' ? 1 : -1
-  
-          } else {
-            return 0
-          }
-        })
-      }
-    }
-
-    if(search) {
-      SocialNetworks = SocialNetworks.filter((SocialNetwork) => {
-        return SocialNetwork.title.includes(search)
-      })
-    }
-
-    const count = SocialNetworks.length
-
-    if(skip) {
-      SocialNetworks = SocialNetworks.slice(skip)
-    }
-
-    if(limit) {
-      SocialNetworks = SocialNetworks.slice(0, limit)
-    }
-    
     return {
       success: true,
       outputs: {
-        SocialNetworks,
-        count
+        advantages: siteInfo?.advantages || [],
+        count: (siteInfo?.advantages || []).length
       }
     }
 
   } catch(error) {
-    console.log('Error while getting SocialNetworks: ', error)
+    console.log('Error while getting advantages: ', error)
 
     return {
       success: false,
@@ -292,20 +179,21 @@ const getSocialNetworks = async (
 
 //--------------------------------------------------------------------------------
 
-const editSocialNetwork = async (
-  SocialNetworkId: string,
+const editAdvantage = async (
+  advantageId: string,
   updates: {
-    title?: string
-    description?: string
-    image?: {
-      format: string
+    englishTitle?: string
+    englishContent?: string
+    germanTitle?: string
+    germanContent?: string
+    icon?: {
+      format: string,
       data: Buffer
-    }
+    } | string
   }
 ): Promise<IResponse> => {
 
   try {
-
     if(Object.keys(updates).length == 0) {
       return {
         success: false,
@@ -318,7 +206,7 @@ const editSocialNetwork = async (
 
     const filter = {
       websiteName,
-      'aboutUs.SocialNetworks._id': new ObjectId(SocialNetworkId)
+      'advantages._id': new ObjectId(advantageId)
     }
 
     const siteInfo = await SiteInfo.findOne(filter).exec()
@@ -333,38 +221,70 @@ const editSocialNetwork = async (
       }
     }
 
-    if(updates.title) {
-      // checking step availability
-
+    if(updates.englishTitle) {
+      // checking english title availability
       const filter = {
         websiteName,
-        'aboutUs.SocialNetworks.title': updates.title
+        'advantages.englishTitle': updates.englishTitle
       }
 
-      const existingSocialNetwork = await SiteInfo.findOne(filter).exec()
+      const existingAdvantage = await SiteInfo.findOne(filter).exec()
 
-      if(existingSocialNetwork) {
+      if(existingAdvantage) {
         return {
           success: false,
           error: {
-            message: errorMessages.siteInfo.titleIsTaken,
+            message: errorMessages.siteInfo.englishTitleIsTaken,
             statusCode: statusCodes.badRequest
           }
         }
       }
     }
 
-    // Store new image in database
-    if(updates.image) {
-      const imageUrl = siteInfo.aboutUs.SocialNetworks.find((SocialNetwork) => {
-        return SocialNetwork._id.toString() == SocialNetworkId
-      })?.image
-
-      if(imageUrl) {
-        await imageService.updateImage(imageUrl, updates.image.format, updates.image.data)
+    if(updates.germanTitle) {
+      // checking german title availability
+      const filter = {
+        websiteName,
+        'advantages.germanTitle': updates.germanTitle
       }
 
-      delete updates.image
+      const existingAdvantage = await SiteInfo.findOne(filter).exec()
+
+      if(existingAdvantage) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.germanTitleIsTaken,
+            statusCode: statusCodes.badRequest
+          }
+        }
+      }
+    }
+
+    if(updates.icon && typeof updates.icon != 'string') {
+      // Deleting old icon
+      const oldIcon = siteInfo?.advantages.find((advantage) => {
+        return advantage._id.toString() == advantageId
+      })?.icon
+      
+      if(oldIcon) {
+        await imageService.deleteImage(oldIcon)
+      }
+
+      // Store new icon in database
+      const result = await imageService.storeImage(updates.icon.format, updates.icon.data)
+
+      if(!result.success) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.imageProblem,
+            statusCode: statusCodes.ise
+          }
+        }
+      }
+      
+      updates.icon = result.imageUrl
     }
 
     const update: { [key: string]: any} = {}
@@ -372,24 +292,24 @@ const editSocialNetwork = async (
     const updatesValues = Object.values(updates)
 
     Object.keys(updates).forEach((u, i) => {
-      update[`aboutUs.SocialNetworks.$[i].${u}`] = updatesValues[i]
+      update[`advantages.$[i].${u}`] = updatesValues[i]
     })
-    const arrayFilters = [{'i._id': SocialNetworkId}]
+    const arrayFilters = [{'i._id': advantageId}]
 
     const updatedSiteInfo = await SiteInfo.findOneAndUpdate(filter, update, { arrayFilters, new: true }).exec()
 
-    const updatedSocialNetwork = updatedSiteInfo?.aboutUs.SocialNetworks.find((SocialNetwork) => {
-      return SocialNetwork._id.toString() == SocialNetworkId
+    const updatedAdvantage = updatedSiteInfo?.advantages.find((advantage) => {
+      return advantage._id.toString() == advantageId
     })
 
     return {
       success: true,
       outputs: {
-        SocialNetwork: updatedSocialNetwork
+        advantage: updatedAdvantage
       }
     }
   } catch(error) {
-    console.log('Error while editing a SocialNetwork: ', error)
+    console.log('Error while editing a advantage: ', error)
 
     return {
       success: false,
@@ -403,34 +323,32 @@ const editSocialNetwork = async (
 
 //--------------------------------------------------------------------------------
 
-const deleteSocialNetworks = async (idList: string[]): Promise<IResponse> => {
+const deleteAdvantage = async (advantageId: string): Promise<IResponse> => {
   try {
+    const filter = {
+      websiteName,
+      'advantages._id': new ObjectId(advantageId)
+    }
 
-    // deleting SocialNetworks and their image
-    for(const id of idList) {
-      const update = {
-        $pull: {
-          'aboutUs.SocialNetworks': {
-            _id: new ObjectId(id)
-          }
-        }
-      }
-      const siteInfo = await SiteInfo.findOneAndUpdate({ websiteName }, update)
+    const update = {
+      $pull: { advantages: { _id: new ObjectId(advantageId) }}
+    }
+    const siteInfo = await SiteInfo.findOneAndUpdate(filter, update).exec()
 
-      const deletedSocialNetwork = siteInfo?.aboutUs.SocialNetworks.find((SocialNetwork) => {
-        return SocialNetwork._id.toString() == id
-      })
-
-      if(deletedSocialNetwork) {
-        await imageService.deleteImage(deletedSocialNetwork.image)
-      }
+    const icon = siteInfo?.advantages.find((advantage) => {
+      return advantage._id.toString() == advantageId
+    })?.icon
+    
+    if(icon) {
+      await imageService.deleteImage(icon)
     }
 
     return {
       success: true
     }
+
   } catch(error) {
-    console.log('Error while deleting SocialNetworks: ', error)
+    console.log('Error while deleting advantage: ', error)
 
     return {
       success: false,
@@ -440,4 +358,1173 @@ const deleteSocialNetworks = async (idList: string[]): Promise<IResponse> => {
       }
     }
   }
+}
+
+//--------------------------------------------------------------------------------
+
+const addService = async (
+  newService: {
+    englishTitle: string
+    englishContent: string
+    germanTitle: string
+    germanContent: string
+    icon: {
+      format: string,
+      data: Buffer
+    }
+    images: {
+      format: string,
+      data: Buffer
+    }[]
+  }
+): Promise<IResponse> => {
+
+  try {
+    const { englishTitle, englishContent, germanTitle, germanContent, icon, images } = newService
+
+    // checking english title availability
+    const existingEnglishTitle = await SiteInfo.findOne({
+      websiteName,
+      'services.englishTitle': englishTitle,
+    }).exec()
+
+    if(existingEnglishTitle) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.siteInfo.englishTitleIsTaken,
+          statusCode: statusCodes.badRequest
+        }
+      }
+    }
+
+    // checking german title availability
+    const existingGermanTitle = await SiteInfo.findOne({
+      websiteName,
+      'services.germanTitle': germanTitle,
+    }).exec()
+
+    if(existingGermanTitle) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.siteInfo.germanTitleIsTaken,
+          statusCode: statusCodes.badRequest
+        }
+      }
+    }
+
+    const iconResult = await imageService.storeImage(icon.format, icon.data)
+    if(!iconResult.success) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.siteInfo.imageProblem,
+          statusCode: statusCodes.ise
+        }
+      }
+    }
+
+    const imagesToSave: string[] = []
+
+    for(const image of images) {
+      const result = await imageService.storeImage(image.format, image.data)
+
+      if(!result.success) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.imageProblem,
+            statusCode: statusCodes.ise
+          }
+        }
+      }
+      imagesToSave.push(result.imageUrl)
+    }
+
+    const update = { 
+      $push: { 
+        services: {
+          englishTitle,
+          englishContent,
+          germanTitle,
+          germanContent,
+          icon: iconResult.imageUrl,
+          images: imagesToSave
+        }
+      }
+    }
+
+    const updatedSiteInfo = await SiteInfo.findOneAndUpdate({ websiteName }, update, { new: true })
+
+    const addedService = updatedSiteInfo?.services.find((service) => {
+      return service.englishTitle == englishTitle
+    })
+
+    return {
+      success: true,
+      outputs: {
+        service: addedService
+      }
+    }
+
+  } catch(error) {
+    console.log('Error while adding service: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const getService = async (serviceId: string): Promise<IResponse> => {
+  try {
+    const filter = {
+      websiteName,
+      'services._id': new ObjectId(serviceId)
+    }
+    const siteInfo = await SiteInfo.findOne(filter).exec()
+
+    if(!siteInfo) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.shared.notFound,
+          statusCode: statusCodes.notFound
+        }
+      }
+    }
+
+    const service = siteInfo.services.find((service) => {
+      return service._id.toString() == serviceId
+    })
+
+    return {
+      success: true,
+      outputs: {
+        service
+      }
+    }
+
+  } catch(error) {
+    console.log('Error while getting service: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const getServices = async (): Promise<IResponse> => {
+  try {
+    const siteInfo = await SiteInfo.findOne({ websiteName }).exec()
+
+    return {
+      success: true,
+      outputs: {
+        services: siteInfo?.services || [],
+        count: (siteInfo?.services || []).length
+      }
+    }
+
+  } catch(error) {
+    console.log('Error while getting services: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const editService = async (
+  serviceId: string,
+  updates: {
+    englishTitle?: string
+    englishContent?: string
+    germanTitle?: string
+    germanContent?: string
+    icon?: {
+      format: string,
+      data: Buffer
+    } | string
+    images?: {
+      format: string,
+      data: Buffer
+    }[] | string[]
+  }
+): Promise<IResponse> => {
+
+  try {
+    if(Object.keys(updates).length == 0) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.shared.noChanges,
+          statusCode: statusCodes.badRequest
+        }
+      }
+    }
+
+    const filter = {
+      websiteName,
+      'services._id': new ObjectId(serviceId)
+    }
+
+    const siteInfo = await SiteInfo.findOne(filter).exec()
+
+    if(!siteInfo) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.shared.notFound,
+          statusCode: statusCodes.notFound
+        }
+      }
+    }
+
+    if(updates.englishTitle) {
+      // checking english title availability
+      const filter = {
+        websiteName,
+        'services.englishTitle': updates.englishTitle
+      }
+
+      const existingService = await SiteInfo.findOne(filter).exec()
+
+      if(existingService) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.englishTitleIsTaken,
+            statusCode: statusCodes.badRequest
+          }
+        }
+      }
+    }
+
+    if(updates.germanTitle) {
+      // checking german title availability
+      const filter = {
+        websiteName,
+        'services.germanTitle': updates.germanTitle
+      }
+
+      const existingService = await SiteInfo.findOne(filter).exec()
+
+      if(existingService) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.germanTitleIsTaken,
+            statusCode: statusCodes.badRequest
+          }
+        }
+      }
+    }
+
+    if(updates.icon && typeof updates.icon != 'string') {
+      // Deleting old icon
+      const oldIcon = siteInfo?.services.find((service) => {
+        return service._id.toString() == serviceId
+      })?.icon
+      
+      if(oldIcon) {
+        await imageService.deleteImage(oldIcon)
+      }
+
+      // Store new icon in database
+
+      const result = await imageService.storeImage(updates.icon.format, updates.icon.data)
+
+      if(!result.success) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.imageProblem,
+            statusCode: statusCodes.ise
+          }
+        }
+      }
+      
+      updates.icon = result.imageUrl
+    }
+
+    if(updates.images) {
+      // Deleting old images
+      const oldImages = siteInfo?.services.find((service) => {
+        return service._id.toString() == serviceId
+      })?.images || []
+      
+      for(const image of oldImages) {
+        await imageService.deleteImage(image)
+      }
+
+      // Store new images in database
+      const imagesToSave: string[] = []
+
+      for(const image of updates.images) {
+        if(typeof image == 'string') continue
+
+        const result = await imageService.storeImage(image.format, image.data)
+  
+        if(!result.success) {
+          return {
+            success: false,
+            error: {
+              message: errorMessages.siteInfo.imageProblem,
+              statusCode: statusCodes.ise
+            }
+          }
+        }
+        imagesToSave.push(result.imageUrl)
+      }
+
+      updates.images = imagesToSave
+    }
+
+    const update: { [key: string]: any} = {}
+
+    const updatesValues = Object.values(updates)
+
+    Object.keys(updates).forEach((u, i) => {
+      update[`services.$[i].${u}`] = updatesValues[i]
+    })
+    const arrayFilters = [{'i._id': serviceId}]
+
+    const updatedSiteInfo = await SiteInfo.findOneAndUpdate(filter, update, { arrayFilters, new: true }).exec()
+
+    const updatedService = updatedSiteInfo?.services.find((service) => {
+      return service._id.toString() == serviceId
+    })
+
+    return {
+      success: true,
+      outputs: {
+        service: updatedService
+      }
+    }
+  } catch(error) {
+    console.log('Error while editing a service: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const deleteService = async (serviceId: string): Promise<IResponse> => {
+  try {
+    const filter = {
+      websiteName,
+      'services._id': new ObjectId(serviceId)
+    }
+
+    const update = {
+      $pull: { services: { _id: new ObjectId(serviceId) }}
+    }
+    const siteInfo = await SiteInfo.findOneAndUpdate(filter, update).exec()
+
+    const images = siteInfo?.services.find((service) => {
+      return service._id.toString() == serviceId
+    })?.images || []
+    
+    for(const image of images) {
+      await imageService.deleteImage(image)
+    }
+
+    return {
+      success: true
+    }
+
+  } catch(error) {
+    console.log('Error while deleting service: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const addMember = async (
+  newMember: {
+    englishName: string
+    englishRole: string
+    germanName: string
+    germanRole: string
+    images: {
+      format: string,
+      data: Buffer
+    }[]
+  }
+): Promise<IResponse> => {
+
+  try {
+    const { englishName, englishRole, germanName, germanRole, images } = newMember
+
+    // checking english name availability
+    const existingEnglishName = await SiteInfo.findOne({
+      websiteName,
+      'members.englishName': englishName,
+    }).exec()
+
+    if(existingEnglishName) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.siteInfo.englishNameIsTaken,
+          statusCode: statusCodes.badRequest
+        }
+      }
+    }
+
+    // checking german name availability
+    const existingGermanName = await SiteInfo.findOne({
+      websiteName,
+      'members.germanName': germanName,
+    }).exec()
+
+    if(existingGermanName) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.siteInfo.germanNameIsTaken,
+          statusCode: statusCodes.badRequest
+        }
+      }
+    }
+
+    const imagesToSave: string[] = []
+
+    for(const image of images) {
+      const result = await imageService.storeImage(image.format, image.data)
+
+      if(!result.success) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.imageProblem,
+            statusCode: statusCodes.ise
+          }
+        }
+      }
+      imagesToSave.push(result.imageUrl)
+    }
+
+    const update = { 
+      $push: { 
+        members: {
+          englishName,
+          englishRole,
+          germanName,
+          germanRole,
+          images: imagesToSave
+        }
+      }
+    }
+
+    const updatedSiteInfo = await SiteInfo.findOneAndUpdate({ websiteName }, update, { new: true })
+
+    const addedMember = updatedSiteInfo?.members.find((member) => {
+      return member.englishName == englishName
+    })
+
+    return {
+      success: true,
+      outputs: {
+        member: addedMember
+      }
+    }
+
+  } catch(error) {
+    console.log('Error while adding member: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const getMember = async (memberId: string): Promise<IResponse> => {
+  try {
+    const filter = {
+      websiteName,
+      'members._id': new ObjectId(memberId)
+    }
+    const siteInfo = await SiteInfo.findOne(filter).exec()
+
+    if(!siteInfo) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.shared.notFound,
+          statusCode: statusCodes.notFound
+        }
+      }
+    }
+
+    const member = siteInfo.members.find((member) => {
+      return member._id.toString() == memberId
+    })
+
+    return {
+      success: true,
+      outputs: {
+        member
+      }
+    }
+
+  } catch(error) {
+    console.log('Error while getting member: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const getMembers = async (): Promise<IResponse> => {
+  try {
+    const siteInfo = await SiteInfo.findOne({ websiteName }).exec()
+
+    return {
+      success: true,
+      outputs: {
+        members: siteInfo?.members || [],
+        count: (siteInfo?.members || []).length
+      }
+    }
+
+  } catch(error) {
+    console.log('Error while getting members: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const editMember = async (
+  memberId: string,
+  updates: {
+    englishName?: string
+    englishRole?: string
+    germanName?: string
+    germanRole?: string
+    images?: {
+      format: string,
+      data: Buffer
+    }[] | string[]
+  }
+): Promise<IResponse> => {
+
+  try {
+    if(Object.keys(updates).length == 0) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.shared.noChanges,
+          statusCode: statusCodes.badRequest
+        }
+      }
+    }
+
+    const filter = {
+      websiteName,
+      'members._id': new ObjectId(memberId)
+    }
+
+    const siteInfo = await SiteInfo.findOne(filter).exec()
+
+    if(!siteInfo) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.shared.notFound,
+          statusCode: statusCodes.notFound
+        }
+      }
+    }
+
+    if(updates.englishName) {
+      // checking english name availability
+      const filter = {
+        websiteName,
+        'members.englishName': updates.englishName
+      }
+
+      const existingMember = await SiteInfo.findOne(filter).exec()
+
+      if(existingMember) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.englishNameIsTaken,
+            statusCode: statusCodes.badRequest
+          }
+        }
+      }
+    }
+
+    if(updates.germanName) {
+      // checking german name availability
+      const filter = {
+        websiteName,
+        'members.germanName': updates.germanName
+      }
+
+      const existingMember = await SiteInfo.findOne(filter).exec()
+
+      if(existingMember) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.germanNameIsTaken,
+            statusCode: statusCodes.badRequest
+          }
+        }
+      }
+    }
+
+    if(updates.images) {
+      // Deleting old images
+      const oldImages = siteInfo?.members.find((member) => {
+        return member._id.toString() == memberId
+      })?.images || []
+      
+      for(const image of oldImages) {
+        await imageService.deleteImage(image)
+      }
+
+      // Store new images in database
+      const imagesToSave: string[] = []
+
+      for(const image of updates.images) {
+        if(typeof image == 'string') continue
+
+        const result = await imageService.storeImage(image.format, image.data)
+  
+        if(!result.success) {
+          return {
+            success: false,
+            error: {
+              message: errorMessages.siteInfo.imageProblem,
+              statusCode: statusCodes.ise
+            }
+          }
+        }
+        imagesToSave.push(result.imageUrl)
+      }
+
+      updates.images = imagesToSave
+    }
+
+    const update: { [key: string]: any} = {}
+
+    const updatesValues = Object.values(updates)
+
+    Object.keys(updates).forEach((u, i) => {
+      update[`members.$[i].${u}`] = updatesValues[i]
+    })
+    const arrayFilters = [{'i._id': memberId}]
+
+    const updatedSiteInfo = await SiteInfo.findOneAndUpdate(filter, update, { arrayFilters, new: true }).exec()
+
+    const updatedMember = updatedSiteInfo?.members.find((member) => {
+      return member._id.toString() == memberId
+    })
+
+    return {
+      success: true,
+      outputs: {
+        member: updatedMember
+      }
+    }
+  } catch(error) {
+    console.log('Error while editing a member: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const deleteMember = async (memberId: string): Promise<IResponse> => {
+  try {
+    const filter = {
+      websiteName,
+      'members._id': new ObjectId(memberId)
+    }
+
+    const update = {
+      $pull: { members: { _id: new ObjectId(memberId) }}
+    }
+    const siteInfo = await SiteInfo.findOneAndUpdate(filter, update).exec()
+
+    const images = siteInfo?.members.find((member) => {
+      return member._id.toString() == memberId
+    })?.images || []
+    
+    for(const image of images) {
+      await imageService.deleteImage(image)
+    }
+
+    return {
+      success: true
+    }
+
+  } catch(error) {
+    console.log('Error while deleting member: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}//--------------------------------------------------------------------------------
+
+const addSatisfaction = async (
+  newSatisfaction: {
+    englishTitle: string
+    englishContent: string
+    germanTitle: string
+    germanContent: string
+    images: {
+      format: string,
+      data: Buffer
+    }[]
+  }
+): Promise<IResponse> => {
+
+  try {
+    const { englishTitle, englishContent, germanTitle, germanContent, images } = newSatisfaction
+
+    // checking english title availability
+    const existingSatisfactionWithSameEnglishTitle = await SiteInfo.findOne({
+      websiteName,
+      'satisfactions.englishTitle': englishTitle,
+    }).exec()
+
+    if(existingSatisfactionWithSameEnglishTitle) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.siteInfo.englishTitleIsTaken,
+          statusCode: statusCodes.badRequest
+        }
+      }
+    }
+
+    // checking german title availability
+    const existingSatisfactionWithSameGermanTitle = await SiteInfo.findOne({
+      websiteName,
+      'satisfactions.germanTitle': germanTitle,
+    }).exec()
+
+    if(existingSatisfactionWithSameGermanTitle) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.siteInfo.germanTitleIsTaken,
+          statusCode: statusCodes.badRequest
+        }
+      }
+    }
+
+    const imagesToSave: string[] = []
+
+    for(const image of images) {
+      const result = await imageService.storeImage(image.format, image.data)
+
+      if(!result.success) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.imageProblem,
+            statusCode: statusCodes.ise
+          }
+        }
+      }
+      imagesToSave.push(result.imageUrl)
+    }
+
+    const update = { 
+      $push: { 
+        'satisfactions': {
+          englishTitle,
+          englishContent,
+          germanTitle,
+          germanContent,
+          images: imagesToSave
+        }
+      }
+    }
+
+    const updatedSiteInfo = await SiteInfo.findOneAndUpdate({ websiteName }, update, { new: true })
+
+    const addedSatisfaction = updatedSiteInfo?.satisfactions.find((satisfaction) => {
+      return satisfaction.englishTitle == englishTitle
+    })
+
+    return {
+      success: true,
+      outputs: {
+        satisfaction: addedSatisfaction
+      }
+    }
+
+  } catch(error) {
+    console.log('Error while adding satisfaction: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const getSatisfaction = async (satisfactionId: string): Promise<IResponse> => {
+  try {
+    const filter = {
+      websiteName,
+      'satisfactions._id': new ObjectId(satisfactionId)
+    }
+    const siteInfo = await SiteInfo.findOne(filter).exec()
+
+    if(!siteInfo) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.shared.notFound,
+          statusCode: statusCodes.notFound
+        }
+      }
+    }
+
+    const satisfaction = siteInfo.satisfactions.find((satisfaction) => {
+      return satisfaction._id.toString() == satisfactionId
+    })
+
+    return {
+      success: true,
+      outputs: {
+        satisfaction
+      }
+    }
+
+  } catch(error) {
+    console.log('Error while getting satisfaction: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const getSatisfactions = async (): Promise<IResponse> => {
+  try {
+    const siteInfo = await SiteInfo.findOne({ websiteName }).exec()
+
+    return {
+      success: true,
+      outputs: {
+        satisfactions: siteInfo?.satisfactions || [],
+        count: (siteInfo?.satisfactions || []).length
+      }
+    }
+
+  } catch(error) {
+    console.log('Error while getting satisfactions: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const editSatisfaction = async (
+  satisfactionId: string,
+  updates: {
+    englishTitle?: string
+    englishContent?: string
+    germanTitle?: string
+    germanContent?: string
+    images?: {
+      format: string,
+      data: Buffer
+    }[] | string[]
+  }
+): Promise<IResponse> => {
+
+  try {
+    if(Object.keys(updates).length == 0) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.shared.noChanges,
+          statusCode: statusCodes.badRequest
+        }
+      }
+    }
+
+    const filter = {
+      websiteName,
+      'satisfactions._id': new ObjectId(satisfactionId)
+    }
+
+    const siteInfo = await SiteInfo.findOne(filter).exec()
+
+    if(!siteInfo) {
+      return {
+        success: false,
+        error: {
+          message: errorMessages.shared.notFound,
+          statusCode: statusCodes.notFound
+        }
+      }
+    }
+
+    if(updates.englishTitle) {
+      // checking english title availability
+      const filter = {
+        websiteName,
+        'satisfactions.englishTitle': updates.englishTitle
+      }
+
+      const existingSatisfaction = await SiteInfo.findOne(filter).exec()
+
+      if(existingSatisfaction) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.englishTitleIsTaken,
+            statusCode: statusCodes.badRequest
+          }
+        }
+      }
+    }
+
+    if(updates.germanTitle) {
+      // checking german title availability
+      const filter = {
+        websiteName,
+        'satisfactions.germanTitle': updates.germanTitle
+      }
+
+      const existingSatisfaction = await SiteInfo.findOne(filter).exec()
+
+      if(existingSatisfaction) {
+        return {
+          success: false,
+          error: {
+            message: errorMessages.siteInfo.germanTitleIsTaken,
+            statusCode: statusCodes.badRequest
+          }
+        }
+      }
+    }
+
+    if(updates.images) {
+      // Deleting old images
+      const oldImages = siteInfo?.satisfactions.find((satisfaction) => {
+        return satisfaction._id.toString() == satisfactionId
+      })?.images || []
+      
+      for(const image of oldImages) {
+        await imageService.deleteImage(image)
+      }
+
+      // Store new images in database
+      const imagesToSave: string[] = []
+
+      for(const image of updates.images) {
+        if(typeof image == 'string') continue
+
+        const result = await imageService.storeImage(image.format, image.data)
+  
+        if(!result.success) {
+          return {
+            success: false,
+            error: {
+              message: errorMessages.siteInfo.imageProblem,
+              statusCode: statusCodes.ise
+            }
+          }
+        }
+        imagesToSave.push(result.imageUrl)
+      }
+
+      updates.images = imagesToSave
+    }
+
+    const update: { [key: string]: any} = {}
+
+    const updatesValues = Object.values(updates)
+
+    Object.keys(updates).forEach((u, i) => {
+      update[`satisfactions.$[i].${u}`] = updatesValues[i]
+    })
+    const arrayFilters = [{'i._id': satisfactionId}]
+
+    const updatedSiteInfo = await SiteInfo.findOneAndUpdate(filter, update, { arrayFilters, new: true }).exec()
+
+    const updatedSatisfaction = updatedSiteInfo?.satisfactions.find((satisfaction) => {
+      return satisfaction._id.toString() == satisfactionId
+    })
+
+    return {
+      success: true,
+      outputs: {
+        satisfaction: updatedSatisfaction
+      }
+    }
+  } catch(error) {
+    console.log('Error while editing a satisfaction: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------
+
+const deleteSatisfaction = async (satisfactionId: string): Promise<IResponse> => {
+  try {
+    const filter = {
+      websiteName,
+      'satisfactions._id': new ObjectId(satisfactionId)
+    }
+
+    const update = {
+      $pull: { satisfactions: { _id: new ObjectId(satisfactionId) }}
+    }
+    const siteInfo = await SiteInfo.findOneAndUpdate(filter, update).exec()
+
+    const images = siteInfo?.satisfactions.find((satisfaction) => {
+      return satisfaction._id.toString() == satisfactionId
+    })?.images || []
+    
+    for(const image of images) {
+      await imageService.deleteImage(image)
+    }
+
+    return {
+      success: true
+    }
+
+  } catch(error) {
+    console.log('Error while deleting satisfaction: ', error)
+
+    return {
+      success: false,
+      error: {
+        message: errorMessages.shared.ise,
+        statusCode: statusCodes.ise
+      }
+    }
+  }
+}
+
+
+
+
+export default {
+  addAdvantage,
+  getAdvantage,
+  getAdvantages,
+  editAdvantage,
+  deleteAdvantage,
+  addService,
+  getService,
+  getServices,
+  editService,
+  deleteService,
+  addMember,
+  getMember,
+  getMembers,
+  editMember,
+  deleteMember,
+  addSatisfaction,
+  getSatisfaction,
+  getSatisfactions,
+  editSatisfaction,
+  deleteSatisfaction,
 }

@@ -23,20 +23,16 @@ export const errorMessages = {
     godAdminAlreadyExists: "ادمین اصلی از قبل وجود دارد",
     incorrectCredentials: "ایمیل یا رمز عبور اشتباه است"
   },
-  userService: {
-    phoneAlreadyTaken: "با شماره تلفن مورد نظر حساب کاربری وجود دارد",
-    emailAlreadyTaken: "با ایمیل مورد نظر حساب کاربری وجود دارد",
-    phoneNotFound: "با شماره تلفن مورد نظر حساب کاربری وجود ندارد",
-    incorrectLoginCode: "کد وارد شده اشتباه است",
-    loginCodeExpired: "مهلت استفاده از کد به پایان رسیده است",
-    noSuchUser: "کاربر مورد نظر وجود ندارد"
-  },
   blogService: {
     titleAlreadyTaken: "با عنوان مورد نظر از قبل بلاگی وجود دارد"
   },
   siteInfo: {
     nameIsTaken: 'این نام تکراری است',
     titleIsTaken: 'این عنوان تکراری است',
+    englishNameIsTaken: 'نام انگلیسی تکراری است',
+    germanNameIsTaken: 'نام آلمانی تکراری است',
+    englishTitleIsTaken: 'عنوان انگلیسی تکراری است',
+    germanTitleIsTaken: 'عنوان آلمانی تکراری است',
     phoneIsTaken: 'این تلفن تکراری است',
     questionIsRepetitious: 'این سوال تکراری است',
     imageProblem: 'مشکلی در پردازش تصویر وجود دارد',
@@ -57,3 +53,5 @@ export const errorMessages = {
 export const websiteName = 'landing-page'
 
 export const allowedImageFormats = ['svg', 'png', 'jpg', 'jpeg']
+
+export const permissions = []

@@ -1,7 +1,7 @@
 import Image, { IImage } from "./image"
 import { ObjectId as objectId } from "mongoose"
 
-const storeImage = async (format: string, data: Buffer): Promise<{success: boolean, imageUrl?: string}> => {
+const storeImage = async (format: string, data: Buffer): Promise<{success: true, imageUrl: string} | {success: false}> => {
   try {
     const image = await Image.create({format, data})
 

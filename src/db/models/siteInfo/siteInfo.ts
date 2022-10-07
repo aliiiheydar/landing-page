@@ -13,7 +13,7 @@ export interface ISiteInfo extends Document {
     icon: string
     createdAt: number
   }[]
-  sliderHeader: {
+  sliderHeaders: {
     icon: string
     englishTitle: string
     englishSubheader: string
@@ -30,44 +30,44 @@ export interface ISiteInfo extends Document {
     germanTitle: string
     germanContent: string
   }[]
-  aboutUs: {
+  aboutUsInfo: {
     images: string[]
     englishTitle: string
     englishContent: string
     germanTitle: string
     germanContent: string
   }
-  numbersAndStats: {
+  numbers: {
     _id: objectId
     icon: string
     number: number
     englishContent: string
     germanContent: string
   }[]
-  whyChooseUs: {
+  advantages: {
     _id: objectId
-    icon: string
     englishTitle: string
     englishContent: string
     germanTitle: string
     germanContent: string
+    icon: string
   }[]
   services: {
     _id: objectId
-    icon: string
-    images: string[]
     englishTitle: string
     englishContent: string
     germanTitle: string
     germanContent: string
-  }[]
-  ourTeam: {
-    _id: objectId
+    icon: string
     images: string[]
+  }[]
+  members: {
+    _id: objectId
     englishName: string
     englishRole: string
     germanName: string
     germanRole: string
+    images: string[]
   }[]
   banner: {
     englishTitle: string
@@ -82,7 +82,7 @@ export interface ISiteInfo extends Document {
     germanContent: string
     images: string[]
   }
-  customersSatisfaction: {
+  satisfactions: {
     _id: objectId
     images: string[]
     englishTitle: string
@@ -118,7 +118,7 @@ const siteInfoSchema = new Schema<ISiteInfo>({
       default: () => Math.floor(Date.now() / 1000)
     }
   }],
-  sliderHeader: [{
+  sliderHeaders: [{
     icon: { // This is going to be url of a stored image
       type: String
     },
@@ -158,7 +158,7 @@ const siteInfoSchema = new Schema<ISiteInfo>({
       type: String
     }
   }],
-  aboutUs: {
+  aboutUsInfo: {
     images: [{ // This is going to be url of a stored image
       type: String
     }],
@@ -175,7 +175,7 @@ const siteInfoSchema = new Schema<ISiteInfo>({
       type: String
     }
   },
-  numbersAndStats: [{
+  numbers: [{
     icon: { // This is going to be url of a stored image
       type: String
     },
@@ -190,10 +190,7 @@ const siteInfoSchema = new Schema<ISiteInfo>({
       type: String
     }
   }],
-  whyChooseUs: [{
-    icon: { // This is going to be url of a stored image
-      type: String
-    },
+  advantages: [{
     englishTitle: {
       type: String
     },
@@ -205,15 +202,12 @@ const siteInfoSchema = new Schema<ISiteInfo>({
     },
     germanContent: {
       type: String
-    }
+    },
+    icon: { // This is going to be url of a stored image
+      type: String
+    },
   }],
   services: [{
-    icon: { // This is going to be url of a stored image
-      type: String
-    },
-    images: [{ // This is going to be url of a stored image
-      type: String
-    }],
     englishTitle: {
       type: String
     },
@@ -225,12 +219,15 @@ const siteInfoSchema = new Schema<ISiteInfo>({
     },
     germanContent: {
       type: String
-    }
-  }],
-  ourTeam: [{
+    },
+    icon: { // This is going to be url of a stored image
+      type: String
+    },
     images: [{ // This is going to be url of a stored image
       type: String
     }],
+  }],
+  members: [{
     englishName: {
       type: String
     },
@@ -242,7 +239,10 @@ const siteInfoSchema = new Schema<ISiteInfo>({
     },
     germanRole: {
       type: String
-    }
+    },
+    images: [{ // This is going to be url of a stored image
+      type: String
+    }]
   }],
   banner: {
     englishTitle: {
@@ -275,7 +275,7 @@ const siteInfoSchema = new Schema<ISiteInfo>({
       type: String
     }]
   },
-  customersSatisfaction: [{
+  satisfactions: [{
     images: [{ // This is going to be url of a stored image
       type: String
     }],

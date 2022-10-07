@@ -1,18 +1,27 @@
 import { Router } from 'express'
 
-import { panelMainPageRouter, websiteMainPageRouter } from "./mainPage"
-import { panelAboutUsRouter, websiteAboutUsRouter } from "./aboutUs"
-import { panelContactUsRouter, websiteContactUsRouter } from "./contactUs"
+import { panelAdvantageRouter, websiteAdvantageRouter } from "./advantage"
+import { panelServiceRouter, websiteServiceRouter } from "./service"
+import { panelMemberRouter, websiteMemberRouter } from "./member"
+import { panelSatisfactionRouter, websiteSatisfactionRouter } from "./satisfaction"
 
 export const panelSiteInfoRouter = Router()
 export const websiteSiteInfoRouter = Router()
 
-panelSiteInfoRouter.use('/main-page', panelMainPageRouter)
-panelSiteInfoRouter.use('/about-us', panelAboutUsRouter)
-panelSiteInfoRouter.use('/contact-us', panelContactUsRouter)
+panelSiteInfoRouter.use('/advantage', panelAdvantageRouter)
 
-websiteSiteInfoRouter.use('/main-page', websiteMainPageRouter)
-websiteSiteInfoRouter.use('/about-us', websiteAboutUsRouter)
-websiteSiteInfoRouter.use('/contact-us', websiteContactUsRouter)
+websiteSiteInfoRouter.use('/advantage', websiteAdvantageRouter)
+
+panelSiteInfoRouter.use('/service', panelServiceRouter)
+
+websiteSiteInfoRouter.use('/service', websiteServiceRouter)
+
+panelSiteInfoRouter.use('/member', panelMemberRouter)
+
+websiteSiteInfoRouter.use('/member', websiteMemberRouter)
+
+panelSiteInfoRouter.use('/satisfaction', panelSatisfactionRouter)
+
+websiteSiteInfoRouter.use('/satisfaction', websiteSatisfactionRouter)
 
 

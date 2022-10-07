@@ -1,7 +1,6 @@
 import { Router } from 'express'
 
 import auth from "../../middlewares/auth"
-import access from '../../middlewares/access'
 
 import addAdmin from './addAdmin'
 import createGodAdmin from './createGodAdmin'

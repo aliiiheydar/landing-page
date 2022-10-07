@@ -1,5 +1,4 @@
 import Blog, { IBlog } from "./blog"
-import Category from "../category/category"
 import imageService from "../image/image.service"
 import { IResponse } from "../../../controllers/helper"
 import { statusCodes, errorMessages } from "../../../utils/constants"
@@ -30,18 +29,6 @@ const addBlog = async (
         success: false,
         error: {
           message: errorMessages.blogService.titleAlreadyTaken,
-          statusCode: statusCodes.badRequest
-        }
-      }
-    }
-
-    // checking category existence
-    const categoryExists = await Category.findById(category).exec()
-    if(!categoryExists) {
-      return {
-        success: false,
-        error: {
-          message: errorMessages.categoryService.noSuchCategory,
           statusCode: statusCodes.badRequest
         }
       }
@@ -196,64 +183,6 @@ const getBlogs = async (
 
 //-------------------------------------------------
 
-const getBlogsByCategoryId = async (
-  categoryId: string,
-  options: {
-    limit?: number,
-    skip?: number,
-    sortBy?: string,
-    sortOrder?: string,
-    search?: string
-  }
-): Promise<IResponse> => {
-  try {
-    const { limit, skip, sortBy, sortOrder, search } = options
-
-    // Create and fill the query options object
-    const queryOptions: { [key: string]: any } = {}
-    
-    if(limit) {
-      queryOptions['limit'] = limit
-    }
-    if(skip) {
-      queryOptions['skip'] = skip
-    }
-    if(sortBy) {
-      queryOptions['sort'] = {}
-      queryOptions['sort'][`${sortBy}`] = sortOrder || 'asc'
-    }
-    const filter: { [key: string]: any } = { category: categoryId }
-    if(search) {
-      filter.title = { $regex: search }
-    }
-    
-    // Fetch the blogs
-    const count = await Blog.countDocuments(filter)
-    let blogs = await Blog.find(filter, {}, queryOptions)
-      .populate('category', '_id name').exec()
-
-    return {
-      success: true,
-      outputs: {
-        blogs,
-        count
-      }
-    }
-
-  } catch(error) {
-    console.log('Error while getting blogs: ', error)
-    return {
-      success: false,
-      error: {
-        message: errorMessages.shared.ise,
-        statusCode: statusCodes.ise
-      }
-    }
-  }
-}
-
-//-------------------------------------------------
-
 const getBlogsByTag = async (
   tagValue: string,
   options: {
@@ -366,20 +295,6 @@ const editBlog = async (
       }
     }
 
-    if(updates.category) {
-      // checking category existence
-      const categoryExists = await Category.findById(updates.category).exec()
-      if(!categoryExists) {
-        return {
-          success: false,
-          error: {
-            message: errorMessages.categoryService.noSuchCategory,
-            statusCode: statusCodes.badRequest
-          }
-        }
-      }
-    }
-
     // Store new image in database
     if(updates.cover) {
       await imageService.updateImage(blog.cover, updates.cover.format, updates.cover.data)
@@ -477,7 +392,6 @@ export default {
   addBlog,
   getBlog,
   getBlogs,
-  getBlogsByCategoryId,
   getBlogsByTag,
   editBlog,
   deleteBlogs,
